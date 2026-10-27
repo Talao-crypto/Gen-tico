@@ -52,16 +52,13 @@ def criar_populacao(tamanho_populacao, n):
 
 
 def distancia_total(individuo, pontos):
+    n = len(individuo)
     total = 0
-    for i in range(len(individuo) - 1):
+    for i in range(n):
         x1, y1 = pontos[individuo[i]]
-        x2, y2 = pontos[individuo[i + 1]]
+        # A última cidade volta para a primeira (i + 1 == n vira 0)
+        x2, y2 = pontos[individuo[(i + 1) % n]]
         total += math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2)
-
-    # Volta da última cidade para a primeira
-    x1, y1 = pontos[individuo[-1]]
-    x2, y2 = pontos[individuo[0]]
-    total += math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2)
     return total
 
 

@@ -49,14 +49,16 @@ def testar(tamanho_populacao, taxa_mutacao):
 
 
 print(f"Círculo com {PONTOS} pontos, {len(SEEDS)} seeds por configuração")
-cabecalho = "| População | Mutação | Achou o ótimo | Erro médio | Épocas (média) | Tempo (média) |\n|---|---|---|---|---|---|"
+cabecalho = "| População | Mutação | Achou o ótimo | Erro médio | Épocas (média) | Tempo (média) |"
 
 print("\nVariando a taxa de mutação:\n")
 print(cabecalho)
+print("|---|---|---|---|---|---|")
 for taxa in TAXAS_MUTACAO:
     testar(POPULACAO_PADRAO, taxa)
 
 print("\nVariando o tamanho da população:\n")
 print(cabecalho)
+print("|---|---|---|---|---|---|")
 for tamanho in TAMANHOS_POPULACAO:
     testar(tamanho, MUTACAO_PADRAO)

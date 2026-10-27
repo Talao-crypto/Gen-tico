@@ -37,13 +37,11 @@ PASTA = os.path.join(os.path.dirname(os.path.abspath(__file__)), "resultados")
 # Um cenário completo: roda o algoritmo, mostra o resultado e salva os arquivos
 # ---------------------------------------------------------------------------
 
-def executar_cenario(nome, arquivo, pontos, distancia_otima, max_geracoes, max_estagnacao,
-                     epocas_para_salvar):
+def executar_cenario(nome, arquivo, pontos, distancia_otima, max_geracoes, max_estagnacao):
     print(f"\n===== {nome}: {len(pontos)} pontos =====")
 
     ao_vivo = None
     if MOSTRAR_JANELA:
-        vis.abrir_janela(nome)
         ao_vivo = vis.atualizar_janela
 
     historico = ag.executar_algoritmo_genetico(
@@ -67,8 +65,8 @@ def executar_cenario(nome, arquivo, pontos, distancia_otima, max_geracoes, max_e
         print(f"Diferença absoluta: {diferenca:.2f}")
         print(f"Erro percentual: {diferenca / distancia_otima * 100:.2f}%")
 
-    # Imagens da rota nas épocas pedidas e na última
-    for epoca in epocas_para_salvar + [ultima_epoca]:
+    # Imagens da rota em algumas épocas e na última
+    for epoca in [0, 10, 50, 100, ultima_epoca]:
         if epoca <= ultima_epoca:
             distancia = historico["melhores"][epoca]
             titulo = f"{nome} | Época {epoca} | Distância: {distancia:.2f}"
@@ -96,18 +94,17 @@ os.makedirs(PASTA, exist_ok=True)
 
 random.seed(SEED)
 pontos = ag.gerar_pontos_aleatorios(PONTOS_ALEATORIO)
-executar_cenario("Aleatório", "aleatorio", pontos, None, MAX_GERACOES, MAX_ESTAGNACAO, [0])
+executar_cenario("Aleatório", "aleatorio", pontos, None, MAX_GERACOES, MAX_ESTAGNACAO)
 
 random.seed(SEED)
 pontos = ag.gerar_pontos_circulo(PONTOS_CIRCULO, RAIO)
 otimo = ag.distancia_otima_circulo(PONTOS_CIRCULO, RAIO)
-executar_cenario("Círculo", "circular", pontos, otimo, MAX_GERACOES, MAX_ESTAGNACAO, [0])
+executar_cenario("Círculo", "circular", pontos, otimo, MAX_GERACOES, MAX_ESTAGNACAO)
 
 random.seed(SEED)
 pontos = ag.gerar_pontos_circulo(PONTOS_BONUS, RAIO)
 otimo = ag.distancia_otima_circulo(PONTOS_BONUS, RAIO)
-executar_cenario("Bônus", "bonus", pontos, otimo, MAX_GERACOES_BONUS, MAX_ESTAGNACAO_BONUS,
-                 [0, 10, 50, 100])
+executar_cenario("Bônus", "bonus", pontos, otimo, MAX_GERACOES_BONUS, MAX_ESTAGNACAO_BONUS)
 
 if MOSTRAR_JANELA:
     vis.mostrar_janelas()
