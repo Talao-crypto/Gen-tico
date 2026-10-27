@@ -12,137 +12,102 @@ import visualizacao as vis
 
 SEED = 42
 
-POPULATION_SIZE = 100
-SELECTION_RATE = 0.5      # Top Ranking: os 50% melhores podem ser pais
-MUTATION_RATE = 0.05
-MAX_GENERATIONS = 500
-MAX_STAGNATION = 100
+TAMANHO_POPULACAO = 100
+TAXA_SELECAO = 0.5       # Top Ranking: os 50% melhores podem ser pais
+TAXA_MUTACAO = 0.05
+MAX_GERACOES = 500
+MAX_ESTAGNACAO = 100     # para se a melhor distância não melhorar por 100 épocas
 
-N_POINTS_RANDOM = 20
-N_POINTS_CIRCLE = 20
-CIRCLE_RADIUS = 40
+PONTOS_ALEATORIO = 20
+PONTOS_CIRCULO = 20
+RAIO = 40
 
-# Bônus: círculo com muitos pontos precisa de mais épocas para convergir
-N_POINTS_BONUS = 100
-MAX_GENERATIONS_BONUS = 20000
-MAX_STAGNATION_BONUS = 2000
-BONUS_SNAPSHOT_EPOCHS = [0, 10, 50, 100]
+# O bônus tem mais pontos, então precisa de mais épocas
+PONTOS_BONUS = 100
+MAX_GERACOES_BONUS = 20000
+MAX_ESTAGNACAO_BONUS = 2000
 
-VISUAL_UPDATE_INTERVAL = 10
+ATUALIZAR_A_CADA = 10    # a janela ao vivo é redesenhada a cada 10 épocas
 MOSTRAR_JANELA = "--sem-janela" not in sys.argv
 
-PASTA_RESULTADOS = os.path.join(os.path.dirname(os.path.abspath(__file__)), "resultados")
+PASTA = os.path.join(os.path.dirname(os.path.abspath(__file__)), "resultados")
 
 
 # ---------------------------------------------------------------------------
-# Funções auxiliares dos experimentos
+# Um cenário completo: roda o algoritmo, mostra o resultado e salva os arquivos
 # ---------------------------------------------------------------------------
 
-def caminho_resultado(nome_arquivo):
-    return os.path.join(PASTA_RESULTADOS, nome_arquivo)
+def executar_cenario(nome, arquivo, pontos, distancia_otima, max_geracoes, max_estagnacao,
+                     epocas_para_salvar):
+    print(f"\n===== {nome}: {len(pontos)} pontos =====")
 
+    ao_vivo = None
+    if MOSTRAR_JANELA:
+        vis.abrir_janela(nome)
+        ao_vivo = vis.atualizar_janela
 
-def resolver(nome_cenario, pontos, max_geracoes, max_estagnacao):
-    print(f"\n===== {nome_cenario}: {len(pontos)} pontos =====")
-    atualizar_tela = vis.criar_janela_ao_vivo(pontos, nome_cenario) if MOSTRAR_JANELA else None
     historico = ag.executar_algoritmo_genetico(
-        pontos, POPULATION_SIZE, SELECTION_RATE, MUTATION_RATE,
-        max_geracoes, max_estagnacao, atualizar_tela, VISUAL_UPDATE_INTERVAL,
-    )
+        pontos, TAMANHO_POPULACAO, TAXA_SELECAO, TAXA_MUTACAO,
+        max_geracoes, max_estagnacao, ao_vivo, ATUALIZAR_A_CADA)
 
-    print(f"\n--- Resultado: {nome_cenario} ---")
-    print(f"Melhor rota: {historico['melhor_rota']}")
-    print(f"Distância da melhor rota: {historico['melhor_distancia']:.2f}")
-    print(f"Épocas executadas: {historico['total_epocas']}")
+    ultima_epoca = len(historico["melhores"]) - 1
+    melhor_distancia = historico["melhores"][ultima_epoca]
+
+    print(f"\n--- Resultado: {nome} ---")
+    print(f"Melhor rota: {historico['rotas'][ultima_epoca]}")
+    print(f"Distância da melhor rota: {melhor_distancia:.2f}")
+    print(f"Épocas executadas: {ultima_epoca}")
     print(f"Época da última melhoria: {historico['epoca_ultima_melhoria']}")
     print(f"Tempo total: {historico['tempo_total']:.2f} s")
     print(f"Tempo até a última melhoria: {historico['tempo_ultima_melhoria']:.2f} s")
-    return historico
 
+    if distancia_otima is not None:
+        diferenca = melhor_distancia - distancia_otima
+        print(f"Distância ótima teórica: {distancia_otima:.2f}")
+        print(f"Diferença absoluta: {diferenca:.2f}")
+        print(f"Erro percentual: {diferenca / distancia_otima * 100:.2f}%")
 
-def comparar_com_otimo(historico, n, raio):
-    otima = ag.distancia_otima_circulo(n, raio)
-    encontrada = historico["melhor_distancia"]
-    diferenca = encontrada - otima
-    erro_percentual = diferenca / otima * 100
+    # Imagens da rota nas épocas pedidas e na última
+    for epoca in epocas_para_salvar + [ultima_epoca]:
+        if epoca <= ultima_epoca:
+            distancia = historico["melhores"][epoca]
+            titulo = f"{nome} | Época {epoca} | Distância: {distancia:.2f}"
+            caminho = os.path.join(PASTA, f"{arquivo}_epoca_{epoca}.png")
+            vis.salvar_rota(pontos, historico["rotas"][epoca], titulo, caminho)
 
-    print(f"Distância ótima teórica: {otima:.2f}")
-    print(f"Diferença absoluta: {diferenca:.2f}")
-    print(f"Erro percentual: {erro_percentual:.2f}%")
-    return otima
+    vis.salvar_convergencia(historico, f"Convergência - {nome}",
+                            os.path.join(PASTA, f"{arquivo}_convergencia.png"), distancia_otima)
 
-
-def salvar_rota_da_epoca(nome_cenario, pontos, historico, epoca, nome_arquivo):
-    individuo = historico["melhor_individuo"][epoca]
-    distancia = historico["melhor_ate_agora"][epoca]
-    titulo = f"{nome_cenario} | Época {epoca} | Distância: {distancia:.2f}"
-    vis.salvar_rota(pontos, individuo, titulo, caminho_resultado(nome_arquivo))
-
-
-def salvar_historico_csv(historico, nome_arquivo):
-    """Guarda o desempenho e a melhor rota de TODAS as épocas."""
-    with open(caminho_resultado(nome_arquivo), "w", newline="") as arquivo:
-        escritor = csv.writer(arquivo)
-        escritor.writerow(["epoca", "melhor_da_epoca", "melhor_ate_agora", "media", "melhor_rota"])
-        for i in historico["epocas"]:
-            rota = " ".join(str(cidade) for cidade in historico["melhor_individuo"][i])
-            escritor.writerow([i, f"{historico['melhor_da_epoca'][i]:.4f}",
-                               f"{historico['melhor_ate_agora'][i]:.4f}",
-                               f"{historico['media'][i]:.4f}", rota])
+    # Histórico de todas as épocas em CSV
+    with open(os.path.join(PASTA, f"{arquivo}_historico.csv"), "w", newline="") as arq:
+        escritor = csv.writer(arq)
+        escritor.writerow(["epoca", "melhor", "media", "melhor_rota"])
+        for epoca in range(ultima_epoca + 1):
+            rota = " ".join(str(cidade) for cidade in historico["rotas"][epoca])
+            escritor.writerow([epoca, round(historico["melhores"][epoca], 4),
+                               round(historico["medias"][epoca], 4), rota])
 
 
 # ---------------------------------------------------------------------------
-# Experimentos
+# Os três experimentos (cada um recomeça da mesma seed)
 # ---------------------------------------------------------------------------
 
-def experimento_aleatorio():
-    random.seed(SEED)
-    nome = "Aleatório"
-    pontos = ag.gerar_pontos_aleatorios(N_POINTS_RANDOM)
-    historico = resolver(nome, pontos, MAX_GENERATIONS, MAX_STAGNATION)
+os.makedirs(PASTA, exist_ok=True)
 
-    salvar_rota_da_epoca(nome, pontos, historico, 0, "aleatorio_rota_inicial.png")
-    salvar_rota_da_epoca(nome, pontos, historico, historico["total_epocas"], "aleatorio_rota_final.png")
-    vis.salvar_convergencia(historico, f"Convergência - cenário aleatório ({N_POINTS_RANDOM} pontos)",
-                            caminho_resultado("aleatorio_convergencia.png"), manter_aberto=MOSTRAR_JANELA)
-    salvar_historico_csv(historico, "aleatorio_historico.csv")
+random.seed(SEED)
+pontos = ag.gerar_pontos_aleatorios(PONTOS_ALEATORIO)
+executar_cenario("Aleatório", "aleatorio", pontos, None, MAX_GERACOES, MAX_ESTAGNACAO, [0])
 
+random.seed(SEED)
+pontos = ag.gerar_pontos_circulo(PONTOS_CIRCULO, RAIO)
+otimo = ag.distancia_otima_circulo(PONTOS_CIRCULO, RAIO)
+executar_cenario("Círculo", "circular", pontos, otimo, MAX_GERACOES, MAX_ESTAGNACAO, [0])
 
-def experimento_circular():
-    random.seed(SEED)
-    nome = "Círculo"
-    pontos = ag.gerar_pontos_circulo(N_POINTS_CIRCLE, CIRCLE_RADIUS)
-    historico = resolver(nome, pontos, MAX_GENERATIONS, MAX_STAGNATION)
-    otima = comparar_com_otimo(historico, N_POINTS_CIRCLE, CIRCLE_RADIUS)
+random.seed(SEED)
+pontos = ag.gerar_pontos_circulo(PONTOS_BONUS, RAIO)
+otimo = ag.distancia_otima_circulo(PONTOS_BONUS, RAIO)
+executar_cenario("Bônus", "bonus", pontos, otimo, MAX_GERACOES_BONUS, MAX_ESTAGNACAO_BONUS,
+                 [0, 10, 50, 100])
 
-    salvar_rota_da_epoca(nome, pontos, historico, 0, "circular_rota_inicial.png")
-    salvar_rota_da_epoca(nome, pontos, historico, historico["total_epocas"], "circular_rota_final.png")
-    vis.salvar_convergencia(historico, f"Convergência - cenário circular ({N_POINTS_CIRCLE} pontos)",
-                            caminho_resultado("circular_convergencia.png"), otima, MOSTRAR_JANELA)
-    salvar_historico_csv(historico, "circular_historico.csv")
-
-
-def experimento_bonus():
-    random.seed(SEED)
-    nome = "Bônus círculo"
-    pontos = ag.gerar_pontos_circulo(N_POINTS_BONUS, CIRCLE_RADIUS)
-    historico = resolver(nome, pontos, MAX_GENERATIONS_BONUS, MAX_STAGNATION_BONUS)
-    otima = comparar_com_otimo(historico, N_POINTS_BONUS, CIRCLE_RADIUS)
-
-    # Snapshots intermediários: só das épocas que realmente aconteceram
-    for epoca in BONUS_SNAPSHOT_EPOCHS:
-        if epoca <= historico["total_epocas"]:
-            salvar_rota_da_epoca(nome, pontos, historico, epoca, f"bonus_epoca_{epoca}.png")
-    salvar_rota_da_epoca(nome, pontos, historico, historico["total_epocas"], "bonus_final.png")
-    vis.salvar_convergencia(historico, f"Convergência - bônus circular ({N_POINTS_BONUS} pontos)",
-                            caminho_resultado("bonus_convergencia.png"), otima, MOSTRAR_JANELA)
-
-
-if __name__ == "__main__":
-    os.makedirs(PASTA_RESULTADOS, exist_ok=True)
-    experimento_aleatorio()
-    experimento_circular()
-    experimento_bonus()
-
-    if MOSTRAR_JANELA:
-        vis.manter_janelas_abertas()
+if MOSTRAR_JANELA:
+    vis.mostrar_janelas()
