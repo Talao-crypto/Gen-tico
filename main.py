@@ -28,13 +28,14 @@ PONTOS_BONUS = 100
 MAX_GERACOES_BONUS = 20000
 MAX_ESTAGNACAO_BONUS = 2000
 
-# Nos cenários de 20 pontos a janela ao vivo e o GIF mostram todas as épocas.
-# No bônus são milhares de épocas, então mostram uma a cada 100.
+# Nos cenários de 20 pontos a janela ao vivo mostra todas as épocas.
+# No bônus são milhares de épocas, então a janela e o GIF mostram uma a cada 100.
 ATUALIZAR_A_CADA = 1
 ATUALIZAR_A_CADA_BONUS = 100
 
-# Épocas que viram imagem (.png) em resultados/; a última época sempre vira imagem
-EPOCAS_IMAGENS = [0, 10, 50, 100]
+# Épocas que viram imagem (.png) em resultados/; a última época sempre vira imagem.
+# Nos cenários de 20 pontos só a última, porque a janela ao vivo já mostra todas.
+EPOCAS_IMAGENS = []
 EPOCAS_IMAGENS_BONUS = [0, 10, 50, 100, 500, 1000, 2000, 3000, 5000]
 
 MOSTRAR_JANELA = "--sem-janela" not in sys.argv
@@ -47,7 +48,7 @@ PASTA = os.path.join(os.path.dirname(os.path.abspath(__file__)), "resultados")
 # ---------------------------------------------------------------------------
 
 def executar_cenario(nome, arquivo, pontos, distancia_otima, max_geracoes, max_estagnacao,
-                     atualizar_a_cada, epocas_imagens, mostrar_rota):
+                     atualizar_a_cada, epocas_imagens, mostrar_rota, salvar_gif):
     print(f"\n===== {nome}: {len(pontos)} pontos =====")
 
     ao_vivo = None
@@ -62,7 +63,7 @@ def executar_cenario(nome, arquivo, pontos, distancia_otima, max_geracoes, max_e
     ultima_epoca = len(historico["melhores"]) - 1
     melhor_distancia = historico["melhores"][ultima_epoca]
 
-    # Resumo: vai para a tela e para resultados/<arquivo>_resumo.txt
+    # Resumo do resultado na tela
     resumo = [
         f"Cenário: {nome} ({len(pontos)} pontos)",
         f"Parâmetros: população {TAMANHO_POPULACAO}, seleção {TAXA_SELECAO:.0%}, "
@@ -86,8 +87,6 @@ def executar_cenario(nome, arquivo, pontos, distancia_otima, max_geracoes, max_e
     print(f"\n--- Resultado: {nome} ---")
     for linha in resumo:
         print(linha)
-    with open(os.path.join(PASTA, f"{arquivo}_resumo.txt"), "w", encoding="utf-8") as arq:
-        arq.write("\n".join(resumo) + "\n")
 
     # Imagens da rota em algumas épocas e na última
     for epoca in epocas_imagens + [ultima_epoca]:
@@ -97,9 +96,10 @@ def executar_cenario(nome, arquivo, pontos, distancia_otima, max_geracoes, max_e
             caminho = os.path.join(PASTA, f"{arquivo}_epoca_{epoca}.png")
             vis.salvar_rota(pontos, historico["rotas"][epoca], titulo, caminho)
 
-    # Animação com a melhor rota de cada época (ou a cada `atualizar_a_cada` épocas)
-    vis.salvar_animacao(pontos, historico, nome, os.path.join(PASTA, f"{arquivo}_evolucao.gif"),
-                        atualizar_a_cada)
+    # Animação com a melhor rota a cada `atualizar_a_cada` épocas
+    if salvar_gif:
+        vis.salvar_animacao(pontos, historico, nome,
+                            os.path.join(PASTA, f"{arquivo}_evolucao.gif"), atualizar_a_cada)
 
     vis.salvar_convergencia(historico, f"Convergência - {nome}",
                             os.path.join(PASTA, f"{arquivo}_convergencia.png"), distancia_otima)
@@ -123,20 +123,20 @@ os.makedirs(PASTA, exist_ok=True)
 random.seed(SEED)
 pontos = ag.gerar_pontos_aleatorios(PONTOS_ALEATORIO)
 executar_cenario("Aleatório", "aleatorio", pontos, None, MAX_GERACOES, MAX_ESTAGNACAO,
-                 ATUALIZAR_A_CADA, EPOCAS_IMAGENS, True)
+                 ATUALIZAR_A_CADA, EPOCAS_IMAGENS, True, False)
 
 random.seed(SEED)
 pontos = ag.gerar_pontos_circulo(PONTOS_CIRCULO, RAIO)
 otimo = ag.distancia_otima_circulo(PONTOS_CIRCULO, RAIO)
 executar_cenario("Círculo", "circular", pontos, otimo, MAX_GERACOES, MAX_ESTAGNACAO,
-                 ATUALIZAR_A_CADA, EPOCAS_IMAGENS, True)
+                 ATUALIZAR_A_CADA, EPOCAS_IMAGENS, True, False)
 
 # No bônus a rota tem 100 cidades, então o console mostra só as distâncias
 random.seed(SEED)
 pontos = ag.gerar_pontos_circulo(PONTOS_BONUS, RAIO)
 otimo = ag.distancia_otima_circulo(PONTOS_BONUS, RAIO)
 executar_cenario("Bônus", "bonus", pontos, otimo, MAX_GERACOES_BONUS, MAX_ESTAGNACAO_BONUS,
-                 ATUALIZAR_A_CADA_BONUS, EPOCAS_IMAGENS_BONUS, False)
+                 ATUALIZAR_A_CADA_BONUS, EPOCAS_IMAGENS_BONUS, False, True)
 
 if MOSTRAR_JANELA:
     vis.mostrar_janelas()

@@ -1,8 +1,0 @@
-Cenário: Aleatório (20 pontos)
-Parâmetros: população 100, seleção 50%, mutação inversao 5%, máximo 500 épocas, estagnação 100 épocas, seed 42
-Melhor rota: [6, 13, 1, 11, 4, 0, 9, 3, 12, 7, 19, 14, 18, 10, 15, 2, 16, 17, 8, 5]
-Distância da melhor rota: 360.68
-Épocas executadas: 184
-Época da última melhoria: 84
-Tempo total: 0.29 s
-Tempo até a última melhoria (convergência): 0.14 s

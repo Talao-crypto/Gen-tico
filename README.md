@@ -20,10 +20,10 @@ python comparar_parametros.py --bonus   # o mesmo, mais o teste das taxas com 10
 |---|---|
 | `algoritmo_genetico.py` | O algoritmo: pontos, população, distância, cruzamento, mutação e o loop das gerações |
 | `main.py` | Parâmetros no topo e os 3 experimentos (aleatório, círculo e bônus) |
-| `visualizacao.py` | Desenho das rotas, janela ao vivo, animação (GIF) e gráfico de convergência |
+| `visualizacao.py` | Desenho das rotas, janela ao vivo, animação (GIF do bônus) e gráfico de convergência |
 | `comparar_parametros.py` | Compara tipos e taxas de mutação e tamanhos de população |
 | `testes.py` | Testes com `assert` |
-| `resultados/` | Imagens, GIFs, gráficos, CSV e resumos gerados pelo `main.py` |
+| `resultados/` | Imagens, GIF do bônus, gráficos e CSV gerados pelo `main.py` |
 
 ## Como o algoritmo funciona
 
@@ -195,11 +195,10 @@ Para cada um o programa imprime a melhor rota, a distância, as épocas, os temp
 
 | Arquivo | O que tem |
 |---|---|
-| `*_resumo.txt` | Parâmetros, melhor rota, distância, épocas, tempos e erro para o ótimo |
 | `*_historico.csv` | Melhor distância, média e melhor rota de **cada época** |
-| `*_evolucao.gif` | Animação da melhor rota em **cada época** (a cada 100 no bônus) |
 | `*_convergencia.png` | Gráfico da melhor distância e da média por época |
-| `*_epoca_N.png` | A rota nas épocas 0, 10, 50, 100 e na última (no bônus também 500, 1000, 2000, 3000 e 5000) |
+| `*_epoca_N.png` | A rota na última época (no bônus também nas épocas 0, 10, 50, 100, 500, 1000, 2000, 3000 e 5000) |
+| `bonus_evolucao.gif` | Animação da melhor rota do bônus a cada 100 épocas |
 
 Rode `python main.py --sem-janela` para ver os números atuais. Eles dependem da seed e do código, e os tempos dependem da máquina. Os números da execução que gerou os arquivos de `resultados/` estão na seção [Resultados](#resultados).
 
@@ -216,16 +215,16 @@ Leva cerca de 1 minuto, ou cerca de 15 minutos com `--bonus`. As tabelas estão 
 
 ## Resultados
 
-Todos os números abaixo são da execução de `python main.py --sem-janela` que gerou a pasta `resultados/` (seed 42). O resumo de cada cenário está em `resultados/<cenário>_resumo.txt`. Os tempos dependem da máquina e **não incluem** o tempo gasto desenhando a janela ao vivo, que é descontado para medir só o algoritmo.
+Todos os números abaixo são da execução de `python main.py --sem-janela` que gerou a pasta `resultados/` (seed 42). O resumo de cada cenário é impresso no console ao final dele. Os tempos dependem da máquina e **não incluem** o tempo gasto desenhando a janela ao vivo, que é descontado para medir só o algoritmo.
 
 **Como acompanhar a solução a cada época** (o enunciado pede isso para os dois cenários):
 
 - **Durante a execução** (`python main.py`): a janela "Rota ao vivo" redesenha a melhor rota **em todas as épocas** nos cenários de 20 pontos (a cada 100 no bônus). O console imprime, para cada época, a melhor distância, a distância média da população e a melhor rota.
 - **Depois da execução**, em `resultados/`:
-  - `*_evolucao.gif`: animação com a melhor rota de **cada época** (a cada 100 no bônus).
   - `*_historico.csv`: melhor distância, distância média e melhor rota de **cada época**.
   - `*_convergencia.png`: gráfico da melhor distância e da média por época.
-  - `*_epoca_N.png`: a rota em épocas escolhidas e na última.
+  - `*_epoca_N.png`: a rota final (no bônus também em épocas intermediárias).
+  - `bonus_evolucao.gif`: animação com a melhor rota do bônus a cada 100 épocas.
 
 ### Cenário aleatório (20 pontos)
 
