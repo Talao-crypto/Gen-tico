@@ -1,0 +1,11 @@
+Cenário: Círculo (20 pontos)
+Parâmetros: população 100, seleção 50%, mutação inversao 5%, máximo 500 épocas, estagnação 100 épocas, seed 42
+Melhor rota: [14, 15, 16, 17, 18, 19, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]
+Distância da melhor rota: 250.30
+Épocas executadas: 221
+Época da última melhoria: 121
+Tempo total: 0.29 s
+Tempo até a última melhoria (convergência): 0.17 s
+Distância ótima teórica: 250.30
+Diferença absoluta: 0.00
+Erro percentual: 0.00%

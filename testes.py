@@ -1,6 +1,7 @@
 """Testes simples do algoritmo genético. Rodar com: python testes.py"""
 import math
 import random
+import time
 
 import algoritmo_genetico as ag
 
@@ -95,6 +96,34 @@ def testar_mutacao_swap():
         assert posicoes_diferentes == 2
 
 
+def testar_mutacao_inversao():
+    # O trecho entre as posições sorteadas fica invertido e o resto não muda
+    random.seed(3)
+    individuo = [0, 1, 2, 3, 4, 5, 6, 7]
+    ag.mutacao_inversao(individuo)
+    random.seed(3)
+    i, j = sorted(random.sample(range(8), 2))
+    esperado = [0, 1, 2, 3, 4, 5, 6, 7]
+    esperado[i:j + 1] = esperado[i:j + 1][::-1]
+    assert individuo == esperado
+    assert individuo != [0, 1, 2, 3, 4, 5, 6, 7]
+
+    for k in range(1000):
+        individuo = random.sample(range(N), N)
+        ag.mutacao_inversao(individuo)
+        assert eh_permutacao(individuo, N)
+
+
+def testar_inversao_desfaz_cruzamento():
+    # Quadrado visitado em "X" (0 -> 2 -> 1 -> 3) tem as diagonais se cruzando.
+    # Inverter o trecho [2, 1] desfaz o cruzamento e chega ao perímetro (40).
+    quadrado = [(0, 0), (10, 0), (10, 10), (0, 10)]
+    rota_cruzada = [0, 2, 1, 3]
+    rota_cruzada[1:3] = rota_cruzada[1:3][::-1]
+    assert rota_cruzada == [0, 1, 2, 3]
+    assert math.isclose(ag.distancia_total(rota_cruzada, quadrado), 40)
+
+
 def testar_nova_geracao():
     pontos = ag.gerar_pontos_aleatorios(N)
     populacao = ag.criar_populacao(30, N)
@@ -106,6 +135,25 @@ def testar_nova_geracao():
         assert populacao[0] == melhor  # elitismo
         for individuo in populacao:
             assert eh_permutacao(individuo, N)
+
+    # O mesmo com a mutação swap
+    populacao, distancias = ag.ordenar_populacao(populacao, pontos)
+    populacao = ag.nova_geracao(populacao, 0.5, 1.0, "swap")
+    for individuo in populacao:
+        assert eh_permutacao(individuo, N)
+
+
+def testar_tempo_nao_conta_desenho():
+    # Uma "janela" lenta não pode aumentar o tempo medido do algoritmo
+    def janela_lenta(pontos, epoca, rota, distancia):
+        time.sleep(0.01)
+
+    pontos = ag.gerar_pontos_aleatorios(N)
+    historico = ag.executar_algoritmo_genetico(pontos, 20, 0.5, 0.05, 30, 1000, janela_lenta, 1,
+                                               mostrar_progresso=False)
+    # 31 desenhos de 0,01 s somariam mais de 0,3 s
+    assert historico["tempo_total"] < 0.3
+    assert historico["tempo_ultima_melhoria"] <= historico["tempo_total"]
 
 
 def testar_algoritmo_completo():
@@ -154,7 +202,10 @@ testes = [
     testar_crossover_trecho_no_meio,
     testar_crossover_sem_repetir_cidades,
     testar_mutacao_swap,
+    testar_mutacao_inversao,
+    testar_inversao_desfaz_cruzamento,
     testar_nova_geracao,
+    testar_tempo_nao_conta_desenho,
     testar_algoritmo_completo,
     testar_parada_por_estagnacao,
     testar_mesma_seed_mesmo_resultado,

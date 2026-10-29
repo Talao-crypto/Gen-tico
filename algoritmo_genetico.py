@@ -100,11 +100,19 @@ def ordered_crossover(pai1, pai2, inicio, fim):
 
 
 def mutacao_swap(individuo):
+    # Troca duas cidades de lugar
     i, j = random.sample(range(len(individuo)), 2)
     individuo[i], individuo[j] = individuo[j], individuo[i]
 
 
-def nova_geracao(populacao_ordenada, taxa_selecao, taxa_mutacao):
+def mutacao_inversao(individuo):
+    # Inverte a ordem de um trecho da rota: [0, 1, 2, 3, 4, 5] com trecho 1..4 vira [0, 4, 3, 2, 1, 5]
+    # Só as duas ligações nas pontas do trecho mudam, por isso ela consegue desfazer cruzamentos
+    i, j = sorted(random.sample(range(len(individuo)), 2))
+    individuo[i:j + 1] = individuo[i:j + 1][::-1]
+
+
+def nova_geracao(populacao_ordenada, taxa_selecao, taxa_mutacao, tipo_mutacao="inversao"):
     tamanho_populacao = len(populacao_ordenada)
     n = len(populacao_ordenada[0])
 
@@ -120,7 +128,10 @@ def nova_geracao(populacao_ordenada, taxa_selecao, taxa_mutacao):
         inicio, fim = sorted(random.sample(range(n + 1), 2))
         filho = ordered_crossover(pai1, pai2, inicio, fim)
         if random.random() < taxa_mutacao:
-            mutacao_swap(filho)
+            if tipo_mutacao == "swap":
+                mutacao_swap(filho)
+            else:
+                mutacao_inversao(filho)
         nova_populacao.append(filho)
 
     return nova_populacao
@@ -132,13 +143,16 @@ def nova_geracao(populacao_ordenada, taxa_selecao, taxa_mutacao):
 
 def executar_algoritmo_genetico(pontos, tamanho_populacao, taxa_selecao, taxa_mutacao,
                                 max_geracoes, max_estagnacao,
-                                ao_vivo=None, intervalo_ao_vivo=10, mostrar_progresso=True):
+                                ao_vivo=None, intervalo_ao_vivo=10, mostrar_progresso=True,
+                                mostrar_rota=False, tipo_mutacao="inversao"):
     """
     Roda o algoritmo e devolve um dicionário com o histórico.
 
     A época 0 é a população inicial aleatória. Nas listas do histórico,
     a posição i guarda o valor da época i.
     ao_vivo(pontos, epoca, rota, distancia) é opcional: desenha a rota durante a execução.
+    mostrar_rota=True imprime também a melhor rota de cada época.
+    Os tempos devolvidos não contam o tempo gasto desenhando a janela ao vivo.
     """
     historico = {
         "melhores": [],   # menor distância de cada época
@@ -153,6 +167,7 @@ def executar_algoritmo_genetico(pontos, tamanho_populacao, taxa_selecao, taxa_mu
     epocas_sem_melhora = 0
     epoca = 0
     inicio_tempo = time.perf_counter()
+    tempo_desenhando = 0  # descontado dos tempos, para medir só o algoritmo
 
     while True:
         populacao, distancias = ordenar_populacao(populacao, pontos)
@@ -161,7 +176,7 @@ def executar_algoritmo_genetico(pontos, tamanho_populacao, taxa_selecao, taxa_mu
         # Só conta como melhora se for maior que 1e-9 (evita erros de arredondamento)
         if distancias[0] < melhor_distancia - 1e-9:
             epoca_ultima_melhoria = epoca
-            tempo_ultima_melhoria = time.perf_counter() - inicio_tempo
+            tempo_ultima_melhoria = time.perf_counter() - inicio_tempo - tempo_desenhando
             epocas_sem_melhora = 0
         else:
             epocas_sem_melhora += 1
@@ -173,21 +188,26 @@ def executar_algoritmo_genetico(pontos, tamanho_populacao, taxa_selecao, taxa_mu
         historico["rotas"].append(melhor_rota[:])
 
         if mostrar_progresso:
-            print(f"Época {epoca} | Melhor: {melhor_distancia:.2f} | Média: {media:.2f}")
+            linha = f"Época {epoca} | Melhor: {melhor_distancia:.2f} | Média: {media:.2f}"
+            if mostrar_rota:
+                linha += f" | Rota: {melhor_rota}"
+            print(linha)
 
         # Parada: limite de épocas ou estagnação (muitas épocas sem melhorar)
         parar = epoca >= max_geracoes or epocas_sem_melhora >= max_estagnacao
 
         if ao_vivo is not None and (epoca % intervalo_ao_vivo == 0 or parar):
+            inicio_desenho = time.perf_counter()
             ao_vivo(pontos, epoca, melhor_rota, melhor_distancia)
+            tempo_desenhando += time.perf_counter() - inicio_desenho
 
         if parar:
             break
 
-        populacao = nova_geracao(populacao, taxa_selecao, taxa_mutacao)
+        populacao = nova_geracao(populacao, taxa_selecao, taxa_mutacao, tipo_mutacao)
         epoca += 1
 
     historico["epoca_ultima_melhoria"] = epoca_ultima_melhoria
     historico["tempo_ultima_melhoria"] = tempo_ultima_melhoria
-    historico["tempo_total"] = time.perf_counter() - inicio_tempo
+    historico["tempo_total"] = time.perf_counter() - inicio_tempo - tempo_desenhando
     return historico

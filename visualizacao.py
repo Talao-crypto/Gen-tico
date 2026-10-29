@@ -1,4 +1,5 @@
 import matplotlib.pyplot as plt
+from matplotlib.animation import FuncAnimation, PillowWriter
 
 
 def desenhar_rota(pontos, rota, titulo):
@@ -27,6 +28,26 @@ def salvar_rota(pontos, rota, titulo, caminho):
     desenhar_rota(pontos, rota, titulo)
     plt.savefig(caminho)
     plt.close()
+
+
+def salvar_animacao(pontos, historico, nome, caminho, passo=1):
+    """GIF com a melhor rota a cada `passo` épocas (passo=1: todas as épocas)."""
+    ultima_epoca = len(historico["melhores"]) - 1
+    epocas = list(range(0, ultima_epoca + 1, passo))
+    if epocas[-1] != ultima_epoca:
+        epocas.append(ultima_epoca)
+
+    figura = plt.figure(figsize=(5, 5))
+
+    def desenhar_quadro(epoca):
+        plt.clf()
+        distancia = historico["melhores"][epoca]
+        desenhar_rota(pontos, historico["rotas"][epoca],
+                      f"{nome} | Época {epoca} | Distância: {distancia:.2f}")
+
+    animacao = FuncAnimation(figura, desenhar_quadro, frames=epocas)
+    animacao.save(caminho, writer=PillowWriter(fps=10), dpi=70)
+    plt.close(figura)
 
 
 def atualizar_janela(pontos, epoca, rota, distancia):
